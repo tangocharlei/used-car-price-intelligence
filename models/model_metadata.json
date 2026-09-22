@@ -1,0 +1,30 @@
+{
+  "selected_model_name": "XGBRegressor",
+  "target_strategy": "log1p",
+  "reference_year": 2026,
+  "feature_list": [
+    "vehicle_age",
+    "kms_run_log1p",
+    "total_owners",
+    "assured_buy",
+    "warranty_avail",
+    "fitness_certificate",
+    "fuel_type",
+    "body_type",
+    "transmission",
+    "make",
+    "model",
+    "city",
+    "registered_state"
+  ],
+  "evaluation_metrics": {
+    "MAE": 44527.70690039036,
+    "RMSE": 86942.18744753943,
+    "R2": 0.9123349327555409
+  },
+  "train_test_split": {
+    "test_size": 0.2,
+    "random_state": 42
+  },
+  "scale_numeric": false
+}
