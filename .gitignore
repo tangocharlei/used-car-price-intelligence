@@ -46,10 +46,14 @@ Thumbs.db
 # Local tooling
 .cursor/
 .deploy_test/
+.depfix/
+.depfix2/
 .pip_linux_check/
 .pip_linux_check313/
 .pip_linux_312/
 .pip_linux_313/
+.wheelcheck/
+.wheelcheck313/
 
 # Optional local data outputs (raw CSV and production model are tracked)
 data/processed/
