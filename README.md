@@ -1,166 +1,147 @@
-# AutoValue AI: Used Vehicle Valuation & Deal Intelligence
+# AutoValue AI
 
-AutoValue AI is an end-to-end machine learning project that estimates **fair market value** for Indian used-car listings, scores deals against an asking price, and surfaces structured purchase guidance in a Streamlit workspace. Models are trained on listing records in `data/raw/Used_Car_Price_Prediction.csv`.
+**AI-powered used vehicle intelligence**
 
-## Problem Statement
+AutoValue AI is an end-to-end machine learning product that estimates fair market value for Indian used-car listings, scores the asking price as a deal, and returns structured purchase guidance in an interactive Streamlit workspace.
 
-Used-car buyers and sellers rarely agree on a single “fair” price. A practical valuation assistant must:
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://used-car-price-intelligence-namansinghai.streamlit.app/)
 
-1. Predict sale price from legitimate vehicle and listing attributes only (no price leakage)
-2. Compare the seller’s asking price to the model’s fair value on the **original rupee scale**
-3. Translate model output into actionable deal intelligence (verdict, negotiation bands, confidence heuristics) without implying guaranteed transaction outcomes
+## 🚀 Live Demo
 
-AutoValue AI addresses these goals with a leakage-aware feature schema, compared regression baselines, a persisted XGBoost pipeline, and an interactive Streamlit dashboard with layered reporting.
+[**Try the Live Application →**](https://used-car-price-intelligence-namansinghai.streamlit.app/)
 
-## Dataset
+The application is deployed on Streamlit Community Cloud and provides an interactive AI-powered used-vehicle valuation experience.
 
-- **Source:** `data/raw/Used_Car_Price_Prediction.csv`
-- **Rows:** 7,400 used-car listings (after loading the raw file)
-- **Target:** `sale_price` (regression, INR)
-- **Legitimate model inputs:** manufacturing year, odometer, ownership count, fuel/body/transmission, make/model, city/state, and listing quality flags (`assured_buy`, `warranty_avail`, `fitness_certificate`)
+---
 
-**Excluded from modeling** (leakage, identifiers, or platform judgment):
+## What it does
 
-- **Price / engagement leakage:** `broker_quote`, `original_price`, `emi_starts_from`, `booking_down_pymnt`, `times_viewed`
-- **Identifiers / high cardinality:** `car_name`, `ad_created_on`, `rto`, `registered_city`, `variant`
-- **Listing operations / platform labels:** `car_rating`, `reserved`, `car_availability`, `is_hot`, `source`
+From vehicle attributes and an asking price (₹), AutoValue AI produces a **Vehicle Intelligence Report** that covers:
 
-EDA notebook: `notebooks/01_eda.ipynb` (figures saved under `reports/figures/`).
+**Vehicle Data → AI Valuation → Deal Assessment → Market Range → Valuation Signals → Confidence → Negotiation Guidance → Purchase Guidance**
 
-## Exploratory Data Analysis
+| Capability | What the user sees |
+|------------|-------------------|
+| **AI Fair Value** | Predicted market value (INR) from the trained regression pipeline |
+| **Deal assessment** | Asking vs fair value, deal score (0–100), and verdict (`Good Deal` / `Fairly Priced` / `Overpriced`) |
+| **Market range** | Indicative low / mid / high band around the AI estimate (±5%) |
+| **Valuation factors & signals** | Heuristic drivers plus positive signals and risks |
+| **Prediction confidence** | Coverage-based confidence level and score (not model predictive uncertainty) |
+| **Negotiation guidance** | Opening offer, target price, and max recommended anchors |
+| **AI purchase guidance** | Rule-based recommendation badge, summary, action line, and next steps |
 
-Notebook: `notebooks/01_eda.ipynb`
+Outputs are **decision-support insights**, not appraisals or guarantees of sale price.
 
-Key themes from EDA:
+---
 
-- Regression target with wide price spread (luxury outliers present; handled on original scale at evaluation time)
-- Strong categorical structure (make, model, city) drives much of the market variation
-- Broker quote and original list price correlate with `sale_price` but are excluded to avoid target leakage
-- Visual summaries cover price by make, fuel/transmission/body, city, and numeric feature relationships
+## User workflow
 
-## Feature Engineering
+1. **Dashboard** — Model snapshot (listings, feature count, R²) and recent session analyses  
+2. **New Valuation** — Enter vehicle basics, configuration, listing flags, and asking price  
+3. **Results** — Layered Vehicle Intelligence Report (executive summary always visible; detail in expanders)  
+4. **History** — Session-scoped saved analyses  
+5. **About** — Product and model metadata  
 
-Module: `src/features/feature_engineering.py`
+**New Valuation** form sections:
 
-Engineered features (reference year pinned at training time, stored in metadata):
+1. Vehicle basics — year, kilometers, previous owners  
+2. Configuration — make, model, fuel, transmission, body type, city, registered state  
+3. Listing & pricing — assured buy, warranty, fitness certificate, asking price (₹)  
 
-| Feature | Description |
-|---------|-------------|
-| `vehicle_age` | `reference_year − yr_mfr` |
-| `kms_run_log1p` | `log1p(kms_run)` |
-| `total_owners` | Prior owner count |
-| `assured_buy`, `warranty_avail`, `fitness_certificate` | Binary listing quality flags |
-| `fuel_type`, `body_type`, `transmission`, `make`, `model`, `city`, `registered_state` | Categorical attributes (one-hot encoded in the sklearn pipeline) |
+Then **Generate Valuation** → review the report → optionally **Save Analysis**.
 
-The production model consumes **13** transformed features (see `models/model_metadata.json`).
+---
 
-## Model Comparison
+## Vehicle Intelligence Report
 
-Script: `src/models/train_models.py`
+### Always visible
 
-80/20 holdout (`random_state=42`); models compared on **MAE** (rupee scale). Full table: `reports/model_comparison.csv`.
+- Executive summary: vehicle identity, AI fair value, asking price, difference, deal score  
+- **AI Verdict** with purchase badge (`STRONG BUY` / `BUY` / `CONSIDER` / `NEGOTIATE` / `AVOID`)  
+- **Key Decision Signals** — positives and risks  
+- **AI Purchase Guidance** — summary, action line, and next steps  
+
+### Expandable detail
+
+- **Detailed Valuation Analysis** — market range and ask-vs-estimate narrative  
+- **What's Driving This Valuation?** — heuristic factor signals and vehicle chips  
+- **Negotiation Guidance** — opening / target / max recommended  
+- **Confidence & Methodology** — confidence level, score, and methodology notes  
+
+---
+
+## AI valuation methodology (high level)
+
+1. User inputs are validated against ranges and categories present in the training CSV.  
+2. Features are engineered consistently with training (`vehicle_age`, `kms_run_log1p`, categoricals, listing flags).  
+3. A persisted **scikit-learn Pipeline** (`XGBRegressor`, `log1p` target) predicts fair value; predictions are inverted to the original rupee scale.  
+4. Deal score, verdict, market range, confidence, negotiation anchors, vehicle signals, and purchase guidance are derived in `app/deal_analyzer.py` from prediction vs asking price and dataset coverage — **not** a second trained model.
+
+**Leakage excluded from modeling:** broker quote, original price, EMI / booking amounts, times viewed, platform ratings, identifiers (`car_name`, `rto`, `variant`, etc.), and listing-operation flags.
+
+---
+
+## Dataset & model
+
+| Item | Value (from repository artifacts) |
+|------|-----------------------------------|
+| Dataset | `data/raw/Used_Car_Price_Prediction.csv` |
+| Listings | **7,400** |
+| Target | `sale_price` (INR regression) |
+| Production model | **XGBRegressor** (`models/final_model.joblib`) |
+| Target strategy | `log1p` |
+| Model features | **13** (see `models/model_metadata.json`) |
+| Holdout split | 80/20, `random_state=42` |
+| Held-out MAE | ₹44,528 |
+| Held-out RMSE | ₹86,942 |
+| Held-out R² | **0.912** |
+
+### Model comparison (MAE on rupee scale)
+
+From `reports/model_comparison.csv`:
 
 | Model | Target strategy | MAE (INR) | R² |
 |-------|-----------------|-----------|-----|
-| XGBRegressor | log1p | **44,528** | 0.912 |
+| **XGBRegressor** | **log1p** | **44,528** | **0.912** |
 | XGBRegressor | original | 45,559 | 0.915 |
 | RandomForestRegressor | original | 47,515 | 0.896 |
 | Ridge | log1p | 49,757 | 0.905 |
 
-**XGBRegressor** with **`log1p`** target transformation was selected as the production model (best MAE among candidates).
+The production checkpoint was selected by **best MAE**, then refit on the full cleaned dataset.
 
-## Final Test Results
+### Model feature list
 
-Held-out 20% test set metrics for the selected configuration (also in `models/model_metadata.json`):
+`vehicle_age`, `kms_run_log1p`, `total_owners`, `assured_buy`, `warranty_avail`, `fitness_certificate`, `fuel_type`, `body_type`, `transmission`, `make`, `model`, `city`, `registered_state`
 
-| Metric | Value |
-|--------|-------|
-| MAE | ₹44,528 |
-| RMSE | ₹86,942 |
-| R² | 0.912 |
+---
 
-After selection, the pipeline is **refit on the full cleaned dataset** and saved as `models/final_model.joblib`.
+## Technology stack
 
-## Deal Intelligence Layer
+| Layer | Stack |
+|-------|--------|
+| UI | Streamlit 1.39 |
+| ML | scikit-learn, XGBoost, joblib |
+| Data | pandas, NumPy, SciPy |
+| Runtime (Cloud) | Python 3.11 (`runtime.txt`) |
 
-Module: `app/deal_analyzer.py`
+---
 
-Downstream of fair-value prediction, the app computes (without retraining):
-
-- Deal score (0–100) and verdict vs asking price
-- Indicative market range and negotiation guidance
-- Confidence heuristics based on how well the vehicle configuration is represented in training data
-- Vehicle signals and rule-based **AI purchase guidance** for the results report
-
-These layers are decision-support heuristics, not separate ML models.
-
-## How to Run the Streamlit Application
-
-### 1. Create and activate a virtual environment
-
-```bash
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# macOS / Linux
-source venv/bin/activate
-```
-
-### 2. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Ensure model artifacts exist
-
-The dashboard loads persisted artifacts only — it does **not** retrain on startup:
-
-- `models/final_model.joblib`
-- `models/model_metadata.json`
-
-If missing, run:
-
-```bash
-python -m src.models.train_models
-```
-
-### 4. Launch the dashboard
-
-```bash
-streamlit run app.py
-```
-
-The app provides:
-
-1. **Dashboard** — training-data stats, model summary, recent saved analyses
-2. **New Valuation** — stepped wizard for vehicle details and asking price (₹)
-3. **Results** — executive summary, AI verdict, purchase guidance, and expandable detail sections
-4. **History** — session-scoped saved analyses
-5. **About** — project and model metadata
-
-## 🚀 Live Demo
-
-Deploy this repository on [Streamlit Community Cloud](https://streamlit.io/cloud) (main branch, entrypoint `app.py`, Python version from `runtime.txt`). After publishing, add your public app URL here—for example, the same naming pattern as [MaintAI](https://github.com/tangocharlei/predictive-maintenance-ai):
-
-`https://<your-app-name>.streamlit.app/`
-
-## Project Structure
+## Project structure
 
 ```text
 used-car-price-intelligence/
-├── app.py                         # Streamlit dashboard entry point
+├── app.py                      # Streamlit entrypoint
 ├── app/
-│   ├── deal_analyzer.py           # Inference, deal logic, recommendations
-│   ├── ui_theme.py
-│   ├── ui_display.py
-│   └── ui_formatting.py
-├── data/raw/Used_Car_Price_Prediction.csv
+│   ├── deal_analyzer.py        # Inference, deal logic, purchase guidance
+│   ├── ui_theme.py             # Branding and CSS
+│   ├── ui_display.py           # INR / verdict formatting
+│   └── ui_formatting.py        # Category / owner label maps
+├── assets/images/              # Hero imagery
+├── data/raw/                   # Training / form-option CSV
 ├── models/
 │   ├── final_model.joblib
 │   └── model_metadata.json
-├── notebooks/
-│   └── 01_eda.ipynb
+├── notebooks/01_eda.ipynb
 ├── reports/
 │   ├── model_comparison.csv
 │   └── figures/
@@ -169,17 +150,62 @@ used-car-price-intelligence/
 │   ├── features/feature_engineering.py
 │   └── models/train_models.py, evaluate_models.py
 ├── requirements.txt
-├── runtime.txt                    # Streamlit Cloud Python version
+├── runtime.txt
 └── README.md
 ```
 
-## Limitations
+---
 
-- Listing data may not capture physical condition, service history, accident damage, or local negotiation dynamics
-- Fair value is a statistical estimate; deal scores and purchase badges are heuristic overlays
-- Rare make/model/city combinations reduce confidence even when inputs validate
-- Saved analysis history lives in the Streamlit session only (not a persistent database)
-- The dashboard does not retrain or tune models on user submissions
+## Local setup
+
+```bash
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# macOS / Linux
+source venv/bin/activate
+
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+Required artifacts (already in the repo for deployment):
+
+- `models/final_model.joblib`
+- `models/model_metadata.json`
+- `data/raw/Used_Car_Price_Prediction.csv`
+
+To retrain from scratch:
+
+```bash
+python -m src.models.train_models
+```
+
+---
+
+## Streamlit Community Cloud
+
+| Setting | Value |
+|---------|--------|
+| Repository | [tangocharlei/used-car-price-intelligence](https://github.com/tangocharlei/used-car-price-intelligence) |
+| Branch | `main` |
+| Entrypoint | `app.py` |
+| Python | `3.11` (`runtime.txt`) |
+| Live app | [used-car-price-intelligence-namansinghai.streamlit.app](https://used-car-price-intelligence-namansinghai.streamlit.app/) |
+
+No Streamlit secrets are required for the default app.
+
+---
+
+## Limitations & responsible use
+
+- Fair value is a statistical estimate from historical listing patterns; physical condition, accidents, service history, and local demand are not fully observed.  
+- Deal score, confidence, negotiation anchors, and purchase badges are **heuristic overlays**, not calibrated uncertainty or transaction guarantees.  
+- Rare make / model / city combinations may lower confidence even when inputs validate.  
+- Saved analyses persist only for the current Streamlit session (no database).  
+- The app loads a persisted model; it does not retrain on user submissions.
+
+---
 
 ## License
 
